@@ -12,7 +12,7 @@ app = Flask(__name__)
 # API Keys from environment variables
 SERPAPI_API_KEY = os.environ.get("SERPAPI_API_KEY", "8051c0c47ffb12b02ad36bfb001c30ecb1d8e8ce189db48559f978d3266fd377")
 SEARCHAPI_API_KEY = os.environ.get("SEARCHAPI_API_KEY", "zx3XnaKEKkfXoPtDrpoYrfkr")
-SCRAPINGBEE_API_KEY = os.environ.get("SCRAPINGBEE_API_KEY", "P0C44LKRYDYCSNVTKL3AGWG5NTMEN87INU9ES4WFVJRC4NQFFJ9YR4GWSK4BFOR8DTSHFNMA6JGBFFRQ")
+
 SEPER_API_KEY = os.environ.get("SEPER_API_KEY", "09cfd839f5b9d175338c2d1e42f01ad0a4dbe255")
 GOOGLE_CSE_API_KEY = os.environ.get("GOOGLE_CSE_API_KEY")
 GOOGLE_CSE_CX = os.environ.get("GOOGLE_CSE_CX")
@@ -45,12 +45,7 @@ def search_searchapi(query):
     response = requests.get(url)
     return response.json()
 
-def search_scrapingbee(query):
-    if not SCRAPINGBEE_API_KEY:
-        return {"error": "SCRAPINGBEE_API_KEY no configurada"}
-    url = f"https://app.scrapingbee.com/api/v1/?api_key={SCRAPINGBEE_API_KEY}&url=https://www.google.com/search?q={query}"
-    response = requests.get(url)
-    return {"content": response.text} # ScrapingBee devuelve HTML, no JSON directamente
+
 
 def search_seper(query):
     if not SEPER_API_KEY:
@@ -101,8 +96,6 @@ def search():
         result = search_serpapi(query)
     elif engine == 'searchapi':
         result = search_searchapi(query)
-    elif engine == 'scrapingbee':
-        result = search_scrapingbee(query)
     elif engine == 'seper':
         result = search_seper(query)
     elif engine == 'google_cse':
@@ -110,7 +103,7 @@ def search():
     else:
         # Fallback to Selenium-based search for traditional engines if no specific API is requested
         if engine not in SEARCH_ENGINES:
-            return jsonify({'error': f"Search engine '{engine}' is not supported. Supported engines: {', '.join(SEARCH_ENGINES.keys())}, serpapi, searchapi, scrapingbee, seper, google_cse"}), 400
+            return jsonify({'error': f"Search engine '{engine}' is not supported. Supported engines: {', '.join(SEARCH_ENGINES.keys())}, serpapi, searchapi, seper, google_cse"}), 400
 
         search_url = SEARCH_ENGINES[engine] + query
 
