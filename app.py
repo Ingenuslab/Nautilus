@@ -6,6 +6,8 @@ from bs4 import BeautifulSoup
 import os
 import subprocess
 import requests
+import google.generativeai as genai # Added
+from groq import Groq # Added
 
 app = Flask(__name__)
 
@@ -16,6 +18,12 @@ SEARCHAPI_API_KEY = os.environ.get("SEARCHAPI_API_KEY", "zx3XnaKEKkfXoPtDrpoYrfk
 SEPER_API_KEY = os.environ.get("SEPER_API_KEY", "09cfd839f5b9d175338c2d1e42f01ad0a4dbe255")
 GOOGLE_CSE_API_KEY = os.environ.get("GOOGLE_CSE_API_KEY")
 GOOGLE_CSE_CX = os.environ.get("GOOGLE_CSE_CX")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY") # Added
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY") # Added
+
+# Configure Gemini API
+if GEMINI_API_KEY: # Added
+    genai.configure(api_key=GEMINI_API_KEY)
 
 app = Flask(__name__)
 
@@ -61,6 +69,34 @@ def search_google_cse(query):
     response = requests.get(url)
     return response.json()
 
+def search_gemini(query):
+    if not GEMINI_API_KEY:
+        return {"error": "GEMINI_API_KEY no configurada"}
+    try:
+        model = genai.GenerativeModel('gemini-1.5-pro')
+        response = model.generate_content(f"Proporciona una respuesta concisa y relevante a la siguiente consulta: {query}")
+        return {"content": response.text}
+    except Exception as e:
+        return {"error": f"Error al usar la API de Gemini: {e}"}
+
+def search_groq(query):
+    if not GROQ_API_KEY:
+        return {"error": "GROQ_API_KEY no configurada"}
+    try:
+        client = Groq(api_key=GROQ_API_KEY)
+        chat_completion = client.chat.completions.create(
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"Proporciona una respuesta concisa y relevante a la siguiente consulta: {query}",
+                }
+            ],
+            model="llama3-8b-8192", # Puedes cambiar el modelo si es necesario
+        )
+        return {"content": chat_completion.choices[0].message.content}
+    except Exception as e:
+        return {"error": f"Error al usar la API de Groq: {e}"}
+
 
 @app.route('/scrape', methods=['GET'])
 def scrape():
@@ -100,10 +136,14 @@ def search():
         result = search_seper(query)
     elif engine == 'google_cse':
         result = search_google_cse(query)
+    elif engine == 'gemini': # Añadir esta condición
+        result = search_gemini(query)
+    elif engine == 'groq': # Añadir esta condición
+        result = search_groq(query)
     else:
         # Fallback to Selenium-based search for traditional engines if no specific API is requested
         if engine not in SEARCH_ENGINES:
-            return jsonify({'error': f"Search engine '{engine}' is not supported. Supported engines: {', '.join(SEARCH_ENGINES.keys())}, serpapi, searchapi, seper, google_cse"}), 400
+            return jsonify({'error': f"Search engine '{engine}' is not supported. Supported engines: {', '.join(SEARCH_ENGINES.keys())}, serpapi, searchapi, seper, google_cse, gemini, groq"}), 400
 
         search_url = SEARCH_ENGINES[engine] + query
 
@@ -149,4 +189,4 @@ def search():
     return jsonify(result)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5001)
+    app.run(host='0.0.0.0', port=5002)
